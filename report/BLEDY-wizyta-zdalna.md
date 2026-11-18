@@ -109,5 +109,5 @@ Do potwierdzenia manualnego:
 | Zadanie 1: literówka, „Anuluj” → domena produkcyjna | ✅ potwierdzone |
 | Komunikat „Wymagane zalogowanie…”, przekierowanie strony głównej, bezpośredni link | ✅ sprawdzone — nie są błędami |
 | „Kraj PL” → „Polska”, spinner po zmianie kanału, `gender` w PATCH | ⏳ ocena automatyzacji („nie błąd”) — zielone testy do prześledzenia w trybie UI: `tests/m_ponomar_test.spec.ts:235`, `:245`, `:255` |
-| Przycisk „Umów za  PLN” bez ceny, aktywny | 🔁 odtworzone 30/30 w automatyzacji — ⏳ do potwierdzenia manualnego |
+| Przycisk „Umów za  PLN” bez ceny, aktywny | 🔁 odtworzone 30/30 w automatyzacji — przeniesione do usprawnień (U-2 w dokumencie Google) |
 | Trackery zewnętrzne | ➖ pominięte (nieistotne w tym kontekście) |

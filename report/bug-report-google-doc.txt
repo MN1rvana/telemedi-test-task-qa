@@ -8,6 +8,23 @@ Przeglądarka: Chromium (Playwright). Okno: 1280×720 i 375×812.
 Konta: własne konto testowe (testy manualne); konto współdzielone (testy automatyczne, tylko odczyt).
 Testy automatyczne: https://github.com/MN1rvana/telemedi-test-task-qa
 
+PODEJŚCIE DO TESTOWANIA
+Od czego zaczynam:
+- Sprawdzam funkcje jako pacjent.
+- Szukam, co jest wygodne i intuicyjne, a co nie.
+- Klikam po aplikacji. Sprawdzam typowe przypadki: puste pole, bardzo długi tekst (np. 999 znaków), nietypowe wartości.
+- Próbuję zepsuć aplikację. Sprawdzam, czy jest odporna na błędy użytkownika.
+- Jeśli są wymagania, czytam je. Najlepiej, gdy zgłoszenie ma jasno opisane kryteria akceptacji (AC).
+
+Priorytety:
+- Kieruję się ryzykiem i wpływem.
+- Pytam: czy błąd może narazić firmę na straty finansowe? Czy błąd dotyczy każdego użytkownika?
+
+Czego świadomie nie sprawdzam:
+- Wydajności.
+- Zaawansowanych ataków na bezpieczeństwo. To testy czarnej skrzynki.
+- Usług zewnętrznych (np. PayU, narzędzia analityczne). Nie są przedmiotem testu.
+
 PRIORYTETY
 P1 — błąd psuje ścieżkę pacjenta (błąd funkcji lub treści).
 P2 — błąd dostępności lub niezawodności.
@@ -265,14 +282,47 @@ Kroki: kliknij „Umów za 0 PLN*”. Na ekranie zapisu do POZ kliknij „Anuluj
 Wynik oczekiwany: aplikacja zostaje w środowisku testowym.
 Wynik rzeczywisty: aplikacja otwiera https://telemedi.com/pl.
 
-[DO POTWIERDZENIA — usuń tę pozycję, jeśli jej nie potwierdzisz]
-Z1-6. Przycisk płatnej konsultacji przez chwilę jest aktywny bez ceny
-Kroki: kliknij „Recepta”. Wybierz lek. Popatrz na przycisk „Umów za …”.
-Wynik oczekiwany: dopóki cena nie jest znana, przycisk jest nieaktywny lub pokazuje ładowanie.
-Wynik rzeczywisty: przycisk pokazuje „Umów za  PLN” i jest aktywny. Po 316–1432 ms (mediana 357 ms) pokazuje „Umów za 59.00 PLN”.
+========================================
+POKRYCIE TESTAMI
+========================================
+Jedno zdanie na błąd: czy test automatyczny złapie błąd, jak i na jakim poziomie.
+
+P1-1  Tak: test jednostkowy walidacji formularza (przycina spacje) i test API (PATCH z samymi spacjami → 400); test E2E już istnieje (linia 153).
+P1-2  Tak: test API, który porównuje nazwy z GET /api/v2/specializations z oczekiwaną listą, albo E2E wyszukiwania (linia 169); test jednostkowy nie pomoże, bo błąd jest w danych.
+P2-1  Częściowo: E2E z lokatorami po rolach (linia 180) i automatyczny skan dostępności (np. axe-core); ogłaszanie przez czytnik ekranu wymaga też testu manualnego.
+P2-2  Tak: E2E na ekranie 375 px, który mierzy ucięty tekst (linia 188), albo porównanie zrzutów ekranu (visual regression).
+P3-1  Tak: E2E, który mierzy szerokość podpowiedzi (linia 197), albo porównanie zrzutów ekranu.
+P3-2  Tak: test jednostkowy komponentu (zmiana specjalizacji wywołuje check-price) i E2E, który nasłuchuje żądań sieci (linia 217).
+Z1-1  Tak: test jednostkowy formatowania daty przy pustej liście terminów i E2E z pustą listą terminów (linia 66).
+Z1-2  Tak: test API bez sesji — to właściwy poziom (linia 307).
+Z1-3  Tak: test jednostkowy stanu pola „Zaznacz wszystkie” albo E2E (linia 106).
+Z1-4  Częściowo: sprawdzanie pisowni plików z tekstami w CI; E2E nie ma tu sensu.
+Z1-5  Tak: E2E — nasza blokada innych domen (stayOnAppDomain) zatrzymuje takie przejście; lepiej dodać test konfiguracji adresów dla każdego środowiska.
+
+
+========================================
+USPRAWNIENIA
+========================================
+U-1. Podpowiedź w polu jako przykład formatu
+W polu „Kod pocztowy” pokaż „00-001” zamiast nazwy pola. Nazwa pola jest już w etykiecie nad polem.
+Tekst jest krótszy, mieści się w polu i podaje format. Rozwiązuje też P3-1.
+
+U-2. Przycisk płatności nieaktywny, dopóki cena nie jest znana
+Teraz przycisk pokazuje „Umów za  PLN” i jest aktywny. Po 316–1432 ms (mediana 357 ms) pokazuje „Umów za 59.00 PLN”.
 Powtarzalność: 30 z 30 prób (test automatyczny).
+Propozycja: dopóki aplikacja nie dostanie odpowiedzi check-price, przycisk jest nieaktywny lub pokazuje ładowanie.
 Jak zobaczyć: w DevTools, w karcie Network, ustaw wolne połączenie (np. „Slow 4G”).
-Proponowany priorytet: P3.
+
+
+========================================
+ZADANIE 1 — TESTY DODATKOWE (POWÓD)
+========================================
+Test główny: rezerwacja konsultacji z receptą od logowania do przekazania płatności.
+Testy dodatkowe, jedno zdanie na test:
+1. „Brak wolnych terminów” (@known-bug): test pokrywa prawdziwy błąd znaleziony w testach — brak terminów daje ogólny błąd zamiast komunikatu.
+2. Wymagane zgody: front nie może wysłać do backendu żądania, o którym wiadomo, że nie przejdzie.
+3. „Zaznacz wszystkie” (@known-bug, test.fail()): błąd dotyczy tylko interfejsu, dlatego test nie blokuje CI.
+4. API bez sesji: podstawowe bezpieczeństwo — endpointy z danymi pacjenta muszą odrzucić wywołanie bez logowania.
 
 
 ========================================
@@ -291,3 +341,29 @@ POZA ZAKRESEM
 ========================================
 - Wybór terminu i rezerwacja: środowisko nie ma wolnych terminów (wszystkie specjalizacje i kanały).
 - Płatność (PayU): testy blokują przejście do operatora płatności.
+
+
+========================================
+PRACA Z AGENTEM
+========================================
+Narzędzie: Claude Code. Model: Claude Opus 5.5.
+Podział pracy: agent pisał kod, konfigurację i szkice raportów. Ja decydowałam, na czym się skupić, i sprawdzałam jego pracę.
+Log: 3 pliki .jsonl (sesje b83cafe1, 207334dc, 39fd7e79). Obrazy i dane wrażliwe usunęłam.
+
+Bezpieczeństwo danych logowania
+- Przed użyciem prawdziwych danych logowania dodałam hook, który blokuje dostęp do pliku .env.
+- Maskowanie danych sprawdziłam na danych fikcyjnych. Ten test wykrył dwa wycieki, których agent nie zauważył (b83cafe1, 16.11, 18:30 UTC).
+
+Testy manualne przed automatyzacją
+- Ścieżkę recepty przeszłam najpierw manualnie, zanim testował ją agent.
+- Znalazłam błąd 400 przy braku wolnych terminów i błąd pola „Zaznacz wszystkie”.
+- Później dodałam testy API bez sesji. Pokazały, że check-price odpowiada bez logowania (16.11, 19:34 i 20:06).
+
+Weryfikacja zgłoszeń agenta
+- Agent zgłosił 9 błędów w „Wizycie zdalnej”. Po mojej weryfikacji manualnej 3 z nich okazały się fałszywymi alarmami.
+- Przykład: formularz, który wyglądał na zawieszony, był skutkiem błędu w naszym skrypcie logowania (39fd7e79, 18.11, 17:23).
+- Dlatego do każdego błędu w raporcie dodałam status weryfikacji manualnej.
+
+Problem z Playwright
+- Agent twierdził, że tryb UI nie uruchomi logowania. Tryb UI uruchomił logowanie, a hasło trafiło do trace.
+- Zrzut ekranu z hasłem usunęłam z logu (207334dc, 17.11, 20:54).
