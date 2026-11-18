@@ -1,0 +1,293 @@
+RAPORT BŁĘDÓW — WIZYTA ZDALNA
+Telemedi, zadanie rekrutacyjne QA — zadanie 2
+
+Autor: [imię i nazwisko]
+Data testów: 16–18.11.2026
+Aplikacja: https://testyautomatyczne.telemedi.com/pl
+Przeglądarka: Chromium (Playwright). Okno: 1280×720 i 375×812.
+Konta: własne konto testowe (testy manualne); konto współdzielone (testy automatyczne, tylko odczyt).
+Testy automatyczne: https://github.com/MN1rvana/telemedi-test-task-qa
+
+PRIORYTETY
+P1 — błąd psuje ścieżkę pacjenta (błąd funkcji lub treści).
+P2 — błąd dostępności lub niezawodności.
+P3 — błąd wizualny lub błąd funkcji o niskim ryzyku.
+
+TESTY REGRESYJNE
+Każdy błąd ma test w pliku tests/m_ponomar_test.spec.ts.
+Test ma tag @known-bug. Test jest czerwony, dopóki błąd nie zostanie poprawiony.
+
+PODSUMOWANIE
+P1-1  Ulica z samych spacji przechodzi walidację
+P1-2  Nazwa „lnternista” — wyszukiwanie „Inter” nic nie znajduje (błąd treści)
+P2-1  Wybór kanału, kafelki schorzeń i komunikaty błędów niedostępne dla klawiatury i czytnika ekranu
+P2-2  Na telefonie pole specjalizacji ucina cenę
+P3-1  Podpowiedź „Kod pocztowy*” nie mieści się w polu
+P3-2  Po zmianie specjalizacji aplikacja nie sprawdza ceny ponownie
+
+
+========================================
+P1-1. Ulica z samych spacji przechodzi walidację
+========================================
+Priorytet: P1
+Rodzaj: błąd funkcji (walidacja)
+Status: potwierdzony manualnie
+
+Warunek wstępny: konto pacjenta bez pełnego adresu (np. nowe konto).
+
+Kroki:
+1. Zaloguj się.
+2. Kliknij „Umów się”.
+3. Kliknij „Wizyta zdalna”. Aplikacja pokazuje formularz „Potrzebujemy Twoich danych!”.
+4. W polu „Ulica” wpisz 3 spacje.
+5. W polu „Kod pocztowy” wpisz „00-950”.
+6. Wypełnij pozostałe pola wymagane.
+7. Kliknij „Zapisz”.
+
+Wynik oczekiwany:
+Pole „Ulica” pokazuje błąd „Pole jest wymagane”.
+Formularz nie wysyła danych.
+
+Wynik rzeczywisty:
+Formularz wysyła dane: PATCH /api/v2/patients/{id} z "street": "   ".
+Serwer odpowiada 200 i zapisuje ulicę jako pustą ("street": null).
+Pole „Ulica” nie pokazuje błędu.
+
+Dodatkowo:
+Formularz zapisuje miejscowość „123” i numer domu „-1”.
+Zdecyduj, jakie wartości są dopuszczalne.
+
+Dowody:
+[wklej zrzut: run2-06-junk-filled.png]
+[wklej zrzut: run2-07-junk-submit.png]
+
+Test: tests/m_ponomar_test.spec.ts, linia 153
+https://github.com/MN1rvana/telemedi-test-task-qa/blob/main/tests/m_ponomar_test.spec.ts#L153
+
+
+========================================
+P1-2. Nazwa „lnternista” — wyszukiwanie „Inter” nic nie znajduje
+========================================
+Priorytet: P1
+Rodzaj: błąd treści (dane w panelu zarządzania treścią). Kod działa poprawnie.
+Status: potwierdzony manualnie
+
+Kroki:
+1. Kliknij „Umów się”.
+2. Kliknij „Wizyta zdalna”.
+3. Kliknij pole specjalizacji.
+4. Wpisz „Inter”.
+
+Wynik oczekiwany:
+Lista pokazuje „Testy Automatyczne - Internista”.
+
+Wynik rzeczywisty:
+Lista pokazuje „Brak wyników”.
+
+Przyczyna:
+Nazwa specjalizacji zaczyna się od małej litery „l”, nie od wielkiej „I”: „Testy Automatyczne - lnternista”.
+Źródło: GET /api/v2/specializations.
+W tej czcionce obie litery wyglądają tak samo. Błąd jest niewidoczny, ale psuje wyszukiwanie.
+
+Poprawka:
+Zmień nazwę specjalizacji w panelu zarządzania treścią. Zmiana kodu nie jest potrzebna.
+
+Dowody:
+[wklej zrzut: run7-01-search-Inter.png]
+
+Test: tests/m_ponomar_test.spec.ts, linia 169
+https://github.com/MN1rvana/telemedi-test-task-qa/blob/main/tests/m_ponomar_test.spec.ts#L169
+Test sprawdza dane. Po zmianie nazwy test jest zielony.
+
+
+========================================
+P2-1. Wybór kanału, kafelki schorzeń i komunikaty błędów niedostępne dla klawiatury i czytnika ekranu
+========================================
+Priorytet: P2
+Rodzaj: dostępność (WCAG 2.1.1, 3.3.1, 4.1.2)
+Status: potwierdzony manualnie
+
+Miejsce 1 — „Wizyta zdalna”, wybór kanału (Telefon, Czat, Wideo)
+
+Kroki:
+1. Kliknij „Umów się”.
+2. Kliknij „Wizyta zdalna”.
+3. Kliknij pole specjalizacji.
+4. Naciśnij Tab kilka razy.
+
+Wynik oczekiwany:
+Fokus przechodzi przez opcje Telefon, Czat i Wideo.
+Czytnik ekranu ogłasza opcje jako grupę przycisków opcji (radio) i podaje zaznaczoną opcję.
+
+Wynik rzeczywisty:
+Fokus przechodzi do linków w stopce. Opcje kanału nie dostają fokusu.
+Opcje nie mają roli „radio”.
+Etykiety wskazują na element, którego nie ma: <label for="3">, brak elementu #3.
+
+Miejsce 2 — formularz recepty
+
+Kroki:
+1. Kliknij „Umów się”.
+2. Kliknij „Recepta”.
+3. Sprawdź kafelki schorzeń czytnikiem ekranu.
+4. Wybierz lek.
+5. Kliknij przycisk „Umów za …” bez zaznaczonych zgód.
+
+Wynik oczekiwany:
+Kafelki schorzeń mają rolę przycisku lub linku.
+Czytnik ekranu ogłasza błąd „Pole jest wymagane” i wiąże go z polem zgody.
+
+Wynik rzeczywisty:
+Kafelki schorzeń nie mają roli przycisku ani linku.
+Komunikat „Pole jest wymagane” nie ma role="alert" ani aria-describedby. Czytnik ekranu nie ogłasza błędu.
+
+Test: tests/m_ponomar_test.spec.ts, linia 180 (miejsce 1). Miejsce 2 nie ma testu.
+https://github.com/MN1rvana/telemedi-test-task-qa/blob/main/tests/m_ponomar_test.spec.ts#L180
+
+
+========================================
+P2-2. Na telefonie pole specjalizacji ucina cenę
+========================================
+Priorytet: P2
+Rodzaj: dostępność, układ strony (WCAG 1.4.10)
+Status: potwierdzony manualnie
+
+Kroki:
+1. Ustaw szerokość okna 375 px (DevTools, tryb urządzenia).
+2. Kliknij „Umów się”.
+3. Kliknij „Wizyta zdalna”.
+4. Popatrz na pole specjalizacji.
+
+Wynik oczekiwany:
+Pole pokazuje pełną cenę, np. „39,00 PLN”.
+
+Wynik rzeczywisty:
+Pole ucina cenę: „39,00 P…”. Około 25 px tekstu jest ukryte.
+
+Dowody:
+[wklej zrzut: run8-04-mobile-375.png]
+
+Test: tests/m_ponomar_test.spec.ts, linia 188
+https://github.com/MN1rvana/telemedi-test-task-qa/blob/main/tests/m_ponomar_test.spec.ts#L188
+
+
+========================================
+P3-1. Podpowiedź „Kod pocztowy*” nie mieści się w polu
+========================================
+Priorytet: P3
+Rodzaj: błąd wizualny
+Status: potwierdzony manualnie
+
+Warunek wstępny: konto pacjenta bez pełnego adresu.
+
+Kroki:
+1. Kliknij „Umów się”.
+2. Kliknij „Wizyta zdalna”. Aplikacja pokazuje formularz „Potrzebujemy Twoich danych!”.
+3. Popatrz na puste pole „Kod pocztowy”.
+
+Wynik oczekiwany:
+Podpowiedź mieści się w polu.
+
+Wynik rzeczywisty:
+Pole pokazuje „Kod pocztow”. Tekst jest około 37 px szerszy niż pole.
+Tylko to pole pokazuje nazwę dwa razy: w etykiecie nad polem i w podpowiedzi.
+
+Propozycja poprawki:
+W podpowiedzi pokaż format kodu, np. „00-001”. Tekst jest krótszy i podaje format.
+
+Dowody:
+[wklej zrzut: run1-03-wizyta-zdalna-start.png]
+
+Test: tests/m_ponomar_test.spec.ts, linia 197
+https://github.com/MN1rvana/telemedi-test-task-qa/blob/main/tests/m_ponomar_test.spec.ts#L197
+
+
+========================================
+P3-2. Po zmianie specjalizacji aplikacja nie sprawdza ceny ponownie
+========================================
+Priorytet: P3
+Rodzaj: błąd funkcji
+Status: potwierdzony manualnie
+
+Kroki:
+1. Otwórz DevTools, kartę Network.
+2. Kliknij „Umów się”.
+3. Kliknij „Wizyta zdalna”. Aplikacja wysyła POST /api/v2/consultations/check-price dla specjalizacji Internista.
+4. Zmień specjalizację na Dermatolog.
+
+Wynik oczekiwany:
+Aplikacja wysyła nowe żądanie check-price z identyfikatorem specjalizacji Dermatolog.
+Żądanie sprawdza cenę, voucher i ubezpieczenie.
+
+Wynik rzeczywisty:
+Aplikacja nie wysyła żądania.
+Cena 49,00 PLN pochodzi z listy specjalizacji.
+Voucher, zniżka i ubezpieczenie zostają sprawdzone tylko dla poprzedniej specjalizacji.
+
+Skutek: niepotwierdzony. Brak konta z voucherem. Brak wolnych terminów, więc płatność nie była osiągnięta.
+Powód priorytetu P3: płatność powinna sprawdzić cenę ponownie.
+Dodatkowo: w 1 z 5 powtórzeń testu aplikacja nie wysłała check-price także przy otwarciu formularza.
+
+Test: tests/m_ponomar_test.spec.ts, linia 217
+https://github.com/MN1rvana/telemedi-test-task-qa/blob/main/tests/m_ponomar_test.spec.ts#L217
+
+
+========================================
+INNE BŁĘDY — ŚCIEŻKA RECEPTY (ZADANIE 1)
+========================================
+Status: potwierdzone manualnie.
+
+Z1-1. Brak wolnych terminów daje ogólny błąd
+Kroki: zarezerwuj konsultację z receptą, gdy brak wolnych terminów.
+Wynik oczekiwany: aplikacja pokazuje komunikat o braku terminów.
+Wynik rzeczywisty: aplikacja wysyła date: "Invalid date". Serwer odpowiada 400. Aplikacja pokazuje „Wystąpił nieoczekiwany błąd”.
+Uwaga: aplikacja wcześniej wysyła do analityki zdarzenie error_NoAvailableDates. „Wizyta zdalna” w tej sytuacji pokazuje poprawny komunikat.
+Test: tests/m_ponomar_test.spec.ts, linia 66
+
+Z1-2. check-price odpowiada bez logowania (bezpieczeństwo)
+Kroki: wyślij POST /api/v2/consultations/check-price bez sesji, z identyfikatorem pacjenta.
+Wynik oczekiwany: serwer odpowiada 401 lub 403.
+Wynik rzeczywisty: serwer odpowiada 200. Odpowiedź zawiera cenę, wynik weryfikacji ubezpieczenia i invitationLink tego pacjenta.
+Potwierdzone w Postmanie.
+Test: tests/m_ponomar_test.spec.ts, linia 307
+
+Z1-3. „Zaznacz wszystkie” zostaje zaznaczone
+Kroki: zaznacz „Zaznacz wszystkie”. Odznacz każdą zgodę osobno.
+Wynik oczekiwany: „Zaznacz wszystkie” nie jest zaznaczone.
+Wynik rzeczywisty: „Zaznacz wszystkie” zostaje zaznaczone.
+Test: tests/m_ponomar_test.spec.ts, linia 106
+
+Z1-4. Literówka w treści zgody
+Wynik rzeczywisty: „zobowiązny/a”. Poprawna forma: „zobowiązany/a”.
+
+Z1-5. „Anuluj” prowadzi do domeny produkcyjnej
+Kroki: kliknij „Umów za 0 PLN*”. Na ekranie zapisu do POZ kliknij „Anuluj”.
+Wynik oczekiwany: aplikacja zostaje w środowisku testowym.
+Wynik rzeczywisty: aplikacja otwiera https://telemedi.com/pl.
+
+[DO POTWIERDZENIA — usuń tę pozycję, jeśli jej nie potwierdzisz]
+Z1-6. Przycisk płatnej konsultacji przez chwilę jest aktywny bez ceny
+Kroki: kliknij „Recepta”. Wybierz lek. Popatrz na przycisk „Umów za …”.
+Wynik oczekiwany: dopóki cena nie jest znana, przycisk jest nieaktywny lub pokazuje ładowanie.
+Wynik rzeczywisty: przycisk pokazuje „Umów za  PLN” i jest aktywny. Po 316–1432 ms (mediana 357 ms) pokazuje „Umów za 59.00 PLN”.
+Powtarzalność: 30 z 30 prób (test automatyczny).
+Jak zobaczyć: w DevTools, w karcie Network, ustaw wolne połączenie (np. „Slow 4G”).
+Proponowany priorytet: P3.
+
+
+========================================
+SPRAWDZONE — TO NIE SĄ BŁĘDY
+========================================
+- „Wymagane zalogowanie na konto pacjenta.” przy kanałach Czat i Wideo: informacja, że ten kanał wymaga konta pacjenta.
+- Strona główna otwiera „Wizytę zdalną” po około 1,6 s: zachowanie zamierzone.
+- Bezpośredni link do formularza otwiera formularz w około 3 s.
+- Pole „Kraj” pokazuje „Polska” po załadowaniu listy krajów. Test: linia 235.
+- Po zmianie kanału aplikacja szuka terminów dla nowego kanału i pokazuje wynik. Test: linia 245.
+- Zapis formularza danych wysyła płeć pacjenta bez zmiany. Test: linia 255.
+
+
+========================================
+POZA ZAKRESEM
+========================================
+- Wybór terminu i rezerwacja: środowisko nie ma wolnych terminów (wszystkie specjalizacje i kanały).
+- Płatność (PayU): testy blokują przejście do operatora płatności.

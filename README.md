@@ -20,12 +20,12 @@ Playwright + TypeScript, Chromium. Node.js ≥ 20.12.
 | Test | Powód |
 |---|---|
 | Rezerwacja recepty do przekazania płatności | Główna ścieżka zadania. Teraz czerwony: brak wolnych terminów, HTTP 400. |
-| „Brak wolnych terminów” `@known-bug` | Brak terminów daje ogólny błąd zamiast komunikatu. |
-| Wymagane zgody | Rezerwacja bez zgód nie może zostać wysłana. |
-| „Zaznacz wszystkie” `@known-bug` | Pole zostaje zaznaczone po odznaczeniu zgód. `test.fail()`: nie blokuje CI. |
+| „Brak wolnych terminów” `@known-bug` | Prawdziwy błąd znaleziony w testach: brak terminów daje ogólny błąd. |
+| Wymagane zgody | Front nie może wysłać do backendu żądania, które na pewno nie przejdzie. |
+| „Zaznacz wszystkie” `@known-bug` | Błąd tylko w interfejsie. `test.fail()`: nie blokuje CI. |
 | Wizyta zdalna `@known-bug` (6) | Błędy z zadania 2. Opis: `report/BLEDY-wizyta-zdalna.md`. |
 | Wizyta zdalna — nie błędy (3) | Pokazują zachowania sprawdzone jako poprawne. |
-| API bez sesji | Dane pacjenta bez logowania: oczekiwane 401/403. `check-price` `@known-bug`: zwraca 200. |
+| API bez sesji | Podstawowe bezpieczeństwo: dane pacjenta tylko po zalogowaniu (401/403). `check-price` `@known-bug`: zwraca 200. |
 
 ## Zasady
 - `retries: 0`. 1 worker: wszystkie testy używają jednego konta.

@@ -9,6 +9,12 @@
 - **Stabilność całości** (18.11, po poprawce logowania, `npm test -- --project=chromium --no-deps --repeat-each=5`): 397,4 s, 95 uruchomień — każdy test dał ten sam wynik 5/5 (50 zgodnie z oczekiwaniem = 10 testów × 5, 45 nieoczekiwanych = 9 znanych błędów × 5), 0 flaky.
 - **Testy `@known-bug` z zadania 2** to pierwszy krok TDD: są czerwone do czasu poprawki.
 
+**Testy dodatkowe zadania 1 — powód (jedno zdanie na test):**
+1. `shows a "no free dates" message … @known-bug` — test pokrywa prawdziwy błąd znaleziony w testach: brak terminów daje ogólny błąd zamiast komunikatu.
+2. `requires every consent and marks each missing one before booking` — front nie może wysłać do backendu żądania, o którym wiadomo, że nie przejdzie.
+3. `clears "Zaznacz wszystkie" … @known-bug` — błąd dotyczy tylko interfejsu, dlatego test ma `test.fail()` i nie blokuje CI.
+4. `API without a session` — podstawowe bezpieczeństwo: endpointy z danymi pacjenta muszą odrzucić wywołanie bez logowania.
+
 | Test | Wynik | Nagranie | Plik testu | Zweryfikowano (T/N) |
 |---|---|---|---|---|
 | `log in to the shared account` | ✅ passed. Logowanie raz na uruchomienie; sesja zapisywana, gdy „Umów się” jest aktywne. | brak — celowo (dane logowania) | `tests/auth.setup.ts:7` | N — brak nagrania z założenia; pełna sesja potwierdzona pośrednio (`user` w localStorage, bezpośrednie linki działają) |
