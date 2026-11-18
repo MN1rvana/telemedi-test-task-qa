@@ -1,0 +1,46 @@
+# Raport z uruchomienia testów — 18.11.2026
+
+Źródło: `test-results/results.json`. Chromium, 1 worker, `retries: 0`.
+- **Ostatni pełny przebieg** (`npm test`, z logowaniem): 99,6 s — 11 zgodnie z oczekiwaniem, 9 nieoczekiwanych (wszystkie to znane błędy: 3 z zadania 1 + 6 z zadania 2), 0 flaky. Nagrania pochodzą z tego przebiegu. (Czas przebiegu zmienia się z obciążeniem środowiska: wcześniej tego dnia 74,8 s.)
+- **Nowe testy (18.11):** blok `remote consultation: checked, not bugs` — 3 zielone testy pokazujące zachowania ocenione jako poprawne (kraj „Polska”, ponowne wyszukanie terminów po zmianie kanału, niezmieniona płeć w zapisie). Kontrola na czerwono: po celowej zmianie oczekiwanych wartości wszystkie 3 sfailowały z czytelnym komunikatem (przywrócone). Stabilność: `--repeat-each=5` — 15/15 passed.
+- **Poprawka logowania (18.11):** `tests/auth.setup.ts` zapisywał sesję zaraz po opuszczeniu strony logowania, zanim aplikacja zapisała dane użytkownika (`user` w localStorage). Bez nich strona otwarta bezpośrednio nie ładowała pacjenta. Teraz sesja jest zapisywana dopiero, gdy „Umów się” jest aktywne; bezpośrednie linki otwierają formularz w ok. 3 s. Skutek uboczny: pełna sesja wygasa (sesja sprzed ok. 80 min nie działała — aplikacja sama się wylogowała), więc przed trybem UI trzeba ją odświeżyć: `npm test -- --project=setup`.
+- **Usunięte testy (to nie błędy, weryfikacja manualna):** komunikat „Wymagane zalogowanie na konto pacjenta.”, przekierowanie strony głównej do „Wizyty zdalnej” oraz bezpośredni link do formularza (skutek błędu w naszym logowaniu). Opis: `report/BLEDY-wizyta-zdalna.md`, sekcja „Sprawdzone, nie są błędami”.
+- **Weryfikacja manualna:** wszystkie błędy z testami potwierdzone przez użytkownika; status każdego zgłoszenia — tabela „Status weryfikacji manualnej” w `report/BLEDY-wizyta-zdalna.md`.
+- **Stabilność całości** (18.11, po poprawce logowania, `npm test -- --project=chromium --no-deps --repeat-each=5`): 397,4 s, 95 uruchomień — każdy test dał ten sam wynik 5/5 (50 zgodnie z oczekiwaniem = 10 testów × 5, 45 nieoczekiwanych = 9 znanych błędów × 5), 0 flaky.
+- **Testy `@known-bug` z zadania 2** to pierwszy krok TDD: są czerwone do czasu poprawki.
+
+| Test | Wynik | Nagranie | Plik testu | Zweryfikowano (T/N) |
+|---|---|---|---|---|
+| `log in to the shared account` | ✅ passed. Logowanie raz na uruchomienie; sesja zapisywana, gdy „Umów się” jest aktywne. | brak — celowo (dane logowania) | `tests/auth.setup.ts:7` | N — brak nagrania z założenia; pełna sesja potwierdzona pośrednio (`user` w localStorage, bezpośrednie linki działają) |
+| `books a prescription consultation up to the payment handoff` | ❌ HTTP 400 `date: "This value is not valid."` — brak wolnych terminów, front wysyła `Invalid date`. | [nagranie](videos/books-a-prescription-consultation-up-to-the-payment-handoff.webm) | `tests/m_ponomar_test.spec.ts:48` | T — dla obecnego wyniku; przekazanie do PayU **niezweryfikowane** (brak terminów) |
+| `shows a "no free dates" message … @known-bug` | ❌ ogólne „Wystąpił nieoczekiwany błąd” zamiast „Brak wolnych terminów”; żądanie z `Invalid date`. | [nagranie](videos/shows-a-no-free-dates-message-instead-of-a-generic-error-when-no-slot.webm) | `tests/m_ponomar_test.spec.ts:66` | T — także manualnie (znalezisko użytkownika) |
+| `requires every consent and marks each missing one before booking` | ✅ „Pole jest wymagane” pod 1. i 3. zgodą, brak żądania rezerwacji. | [nagranie](videos/requires-every-consent-and-marks-each-missing-one-before-booking.webm) | `tests/m_ponomar_test.spec.ts:86` | T — kontrola na czerwono wykonana 16.11 |
+| `clears "Zaznacz wszystkie" … @known-bug` | ✅ oczekiwany fail (`test.fail()`): „Zaznacz wszystkie” nadal zaznaczone. | [nagranie](videos/clears-zaznacz-wszystkie-when-every-consent-is-unticked-again.webm) | `tests/m_ponomar_test.spec.ts:106` | T — także manualnie (znalezisko użytkownika) |
+| `rejects a whitespace-only street in the personal data form @known-bug @p1` | ❌ formularz wysyła `"street":"   "` (żądanie przerwane przez test — nic nie zapisano). | [nagranie](videos/rejects-a-whitespace-only-street-in-the-personal-data-form.webm) | `tests/m_ponomar_test.spec.ts:153` | T — eksploracja i potwierdzenie manualne |
+| `finds the internist when searching the specializations for "Inter" @known-bug @p1` | ❌ „Brak wyników” — nazwa „lnternista” (błąd treści, nie funkcji). | [nagranie](videos/finds-the-internist-when-searching-the-specializations-for-inter.webm) | `tests/m_ponomar_test.spec.ts:169` | T — „na zielono” po podmianie nazwy; potwierdzone manualnie |
+| `exposes the communication channels as radio buttons @known-bug @p2` | ❌ brak elementów z rolą radio. | [nagranie](videos/exposes-the-communication-channels-as-radio-buttons.webm) | `tests/m_ponomar_test.spec.ts:180` | T — eksploracja i potwierdzenie manualne |
+| `shows the whole price in the specialization field on a phone screen @known-bug @p2` | ❌ ucięta cena przy 375 px. | [nagranie](videos/shows-the-whole-price-in-the-specialization-field-on-a-phone-screen.webm) | `tests/m_ponomar_test.spec.ts:188` | T — zrzut ekranu („39,00 P…”) i potwierdzenie manualne |
+| `shows the whole postal code placeholder in the personal data form @known-bug @p3` | ❌ podpowiedź „Kod pocztowy*” szersza niż pole. | [nagranie](videos/shows-the-whole-postal-code-placeholder-in-the-personal-data-form.webm) | `tests/m_ponomar_test.spec.ts:197` | T — zrzut ekranu („Kod pocztow”) i potwierdzenie manualne |
+| `re-checks the price after switching the specialization @known-bug @p3` | ❌ brak `check-price` dla nowej specjalizacji w 10 s. Priorytet obniżony z P1. | [nagranie](videos/re-checks-the-price-after-switching-the-specialization.webm) | `tests/m_ponomar_test.spec.ts:217` | T — „na zielono” gdy żądanie zostaje wysłane; potwierdzone manualnie |
+| `shows the country name, not its code, in the personal data form` | ✅ oba pola „Kraj” pokazują „Polska” po załadowaniu listy krajów. | [nagranie](videos/shows-the-country-name-not-its-code-in-the-personal-data-form.webm) | `tests/m_ponomar_test.spec.ts:235` | T — kontrola na czerwono i 5/5 |
+| `searches the slots again for the newly chosen channel and ends with the no-slots message` | ✅ po wyborze Wideo wysłane `terms …channel=1`, potem „Niestety nie mamy w tej chwili wolnych terminów.” (terminy zamockowane jako puste). | [nagranie](videos/searches-the-slots-again-for-the-newly-chosen-channel-and-ends-with-th.webm) | `tests/m_ponomar_test.spec.ts:245` | T — kontrola na czerwono i 5/5 |
+| `sends the patient's current gender unchanged when saving the personal data form` | ✅ płeć w zapisie = płeć odczytana (zapis przerwany przez test). | [nagranie](videos/sends-the-patient-s-current-gender-unchanged-when-saving-the-personal.webm) | `tests/m_ponomar_test.spec.ts:255` | T — kontrola na czerwono i 5/5 |
+| `refuses … to an anonymous caller with 401/403` (5 endpointów) | ✅ dokładne statusy: 401 (`consultations`, `patients/{id}`, `voucher`, `POST consultations`), 403 (`exams`). | brak — test API | `tests/m_ponomar_test.spec.ts:307` | T — przy oczekiwanym 403 cztery failowały z 401 |
+| `refuses POST /api/v2/consultations/check-price … with 403 @known-bug` | ❌ HTTP 200 bez sesji (oczekiwane 403). | brak — test API | `tests/m_ponomar_test.spec.ts:307` | T — także w Postmanie (użytkownik) |
+
+**Twardy stop na inną domenę** (`stayOnAppDomain`, `tests/fixtures.ts`): każda nawigacja na inny host jest przerywana, strona zamykana, test failuje. Kontrola na czerwono (16.11): przejście na `example.com` — test sfailował z `hard stop …`, strona się nie załadowała.
+
+**Bezpieczeństwo konta współdzielonego:** testy zadania 2 niczego nie zapisują — niepełne dane „nowego pacjenta” są symulowane w przeglądarce (`incompletePersonalData`), a każdy zapis danych pacjenta jest przerywany. Żadna rezerwacja nie została utworzona.
+
+**Tryb UI** (`npm test -- --ui`) nie zawiera projektu logowania — UI zawsze nagrywa trace, a trace logowania pokazałby hasło (tak stało się 17.11 przed tą zmianą; patrz uwagi).
+
+**Kontrola „na zielono” niezweryfikowana** dla: ulicy ze spacji, ról radio, ceny na telefonie i podpowiedzi kodu pocztowego — wymagają poprawki w aplikacji.
+
+## Eksploracja 18.11 (tymczasowe skrypty, usunięte)
+- **Przycisk „Umów za  PLN”:** 30 prób ścieżki recepty do ekranu zgód — 30/30 przycisk najpierw bez ceny i aktywny, cena po 316–1432 ms (mediana 357 ms). Opis w `report/BLEDY-wizyta-zdalna.md` (do potwierdzenia manualnego).
+- **Formularz recepty nie otworzył się 1 raz na 60 prób** (pierwsza seria 30: po kliknięciu „Recepta” pusta strona przez 30 s; druga seria 30: 0 razy). Ta sama ścieżka co w testach zadania 1 — możliwy rzadki niestabilny wynik; przyczyna nieznana.
+
+## Uwagi
+- 17.11 tryb UI uruchomił logowanie z nagrywaniem trace; zrzut ekranu UI przesłany do sesji pokazał (częściowo) e-mail i hasło konta współdzielonego. Naprawione w `playwright.config.ts` / `scripts/run-tests.mjs`; zalecana zmiana hasła przez osobę, która je wydała.
+- Eksploracja „Wizyty zdalnej” na koncie własnym zapisała tam adres testowy (ulica „Testowa”, nr domu „0”, lokal „-”, kod „00-950”, miejscowość „123”) — za zgodą użytkownika; adres nie został poprawiony.
+- Kod eksploracji konta własnego usunięty; zrzuty i nagrania z eksploracji: `.scratch/wizyta/` (lokalnie, poza repozytorium).

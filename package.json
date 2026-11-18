@@ -1,0 +1,21 @@
+{
+  "name": "telemedi-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright E2E tests for the Telemedi patient platform (recruitment task)",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "postinstall": "playwright install chromium",
+    "test": "node scripts/run-tests.mjs",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^20.19.43",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+playwright/.auth/
+test-results/
+playwright-report/
+blob-report/
+.scratch/
+.DS_Store
+.idea/
+# Session handoff for the AI assistant, not part of the deliverable.
+prompt.md
